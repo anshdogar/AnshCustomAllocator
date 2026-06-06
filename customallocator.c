@@ -1,38 +1,62 @@
-typedef struct{
+#include <stdio.h>
+
+#include <unistd.h> 
+
+typedef struct block{
 
     char size;
 
     void*start;
 
-    block* prev;
+    struct block* prev;
 
-    block* next;
+    struct block* next;
 
-} block;
+} ;
 
 //basically linked list structure
 
 
 //gets the current block and current position for the malloc function to accurately add at a certain point.
-block* currentBlock = 0;
+struct block* currentBlock = 0;
 
-void* currentPosition = 0;
+void* currentPosition;
 
 
 
-block* custommalloc(char bytes){
 
-    currentPosition = sbrk(bytes); //update current position
+struct block* custommalloc(char bytes){
 
-    block* b;
+    if(bytes <= 0){
+        return 0;
+    }
 
-    b->start = currentPosition; //adds to tail basically, note that start is the end of the previous block rather than the start of current block
+    printf("creating space for %d bytes\n", bytes);
+
+    void* fullPointer = sbrk(bytes + sizeof(struct block
+    )); //update current position, add space for full
+
+    currentPosition = fullPointer;
+
+    struct block* b = (struct block*)((char*)currentPosition + bytes);
+
+    printf("current position = %p\n", currentPosition);
+
+    printf("Block info at %p\n", b);
+
+    b->start = fullPointer; //adds to tail basically, note that start is the end of the previous block rather than the start of current block
+
+    printf("Block start at %p\n", b->start);
 
     if(currentBlock != 0){
         currentBlock->next = b;
     }
 
-    b->size = bytes;
+
+    b->size = bytes + sizeof(struct block);
+
+    
+    printf("Block contains %d bytes\n", b->size);
 
     b->prev = currentBlock;
 
@@ -47,7 +71,11 @@ block* custommalloc(char bytes){
 
 //shifts a block x bytes in any direction (moves block pointer by amount x)
 
-block* shiftBlock(block* block, char bytes){
+struct block* shiftBlock(struct block* block, int bytes){
+
+        printf("Block contains %d bytes\n", block->size);
+
+        printf("Shifting block %d bytes\n", bytes);
     
     for(void*  i = block->start + block->size; i > block->start; i--){
         char* j = i + bytes;
@@ -55,23 +83,29 @@ block* shiftBlock(block* block, char bytes){
         (*j) = *(char*)i;
     }
 
-    block->start -= bytes;
+    block->start = (void*)((char*)block->start - bytes);
+
+    printf("New block start is at %p\n", block->start);
 
     return block;
 }
 
 //shifts all blocks to the right back by the freed block's size essentially overwriting the data.
 
-void customfree(block* b){
+void customfree(struct block* b){
+
+      printf("Freeing block starts at %p\n", b->start);
 
     if(b->next != 0){
-        b->next->prev = b->prev;
+        struct block* a = b->prev;
+        b->next->prev = a;
     }
     if(b->prev != 0){
-        b->prev->next = b->next;
+        struct block* a = b->next;
+        b->prev->next = a;
     }
 
-    block* a = b->next;
+    struct block* a = b->next;
 
     while (a != 0)
     {
@@ -90,13 +124,13 @@ void customfree(block* b){
 
 //literally malloc, copy and then free the exact same block.
 
-block* customrealloc(block* b, char newBytes){
+struct block* customrealloc(struct block* b, char newBytes){
     if(newBytes <= 0){
         customfree(b);
         return 0;
     }
 
-    block* newBlock = custommalloc(newBytes);
+    struct block* newBlock = custommalloc(newBytes);
 
     for(char i = newBytes; i > 0; i--){
         *((char*) b->start + newBytes) = *((char*) newBlock->start + newBytes);
@@ -107,3 +141,13 @@ block* customrealloc(block* b, char newBytes){
 }
 
 
+int main(){
+
+    struct block* first = custommalloc(5);
+
+    struct block* second = custommalloc(7);
+
+    customfree(first);
+
+    struct block* third = custommalloc(9);
+}
