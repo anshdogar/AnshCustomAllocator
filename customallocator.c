@@ -35,14 +35,16 @@ struct block* custommalloc(char bytes){
 
     printf("creating space for %d bytes\n", bytes);
 
-    int pad = (8 - (bytes % 8) % 8);
+    int pad = ((8 - (bytes % 8) ) % 8);
 
     void* fullPointer = sbrk(bytes + pad + sizeof(struct block
     )); //update current position, add space for full
 
+    if(fullPointer == -1) return 0;
+
     currentPosition = fullPointer;
 
-    struct block* b = (struct block*)((char*)currentPosition + bytes + 1);
+    struct block* b = (struct block*)((char*)currentPosition + bytes + pad);
 
     printf("current position = %p\n", currentPosition);
 
@@ -195,7 +197,7 @@ struct block* customrealloc(struct block* b, char newBytes){
 }
 
 
-int main(){
+int main(){ //practice creation
 
     struct block* first = custommalloc(5);
 
